@@ -1,0 +1,5 @@
+AndroidIOCScanner/
+.claude/
+dist/
+__pycache__/
+*.pyc
