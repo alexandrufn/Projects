@@ -1,11 +1,12 @@
 # Projects
 
-Two small Python games built with [pygame](https://www.pygame.org/).
+Small Python games built with [pygame](https://www.pygame.org/).
 
 | Game | Folder |
 |------|--------|
 | High Noon Reloaded | [`HighNoonReloaded/`](HighNoonReloaded) |
 | Iron Fist Temple | [`IronFistTemple/`](IronFistTemple) |
+| Egg Rush Harry | [`EggRushHarry/`](EggRushHarry) |
 
 Each folder has its own README with controls and gameplay details.
 
