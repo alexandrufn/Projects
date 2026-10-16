@@ -3,3 +3,5 @@ AndroidIOCScanner/
 dist/
 __pycache__/
 *.pyc
+build/
+*.spec
