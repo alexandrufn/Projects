@@ -14,7 +14,8 @@ FLOOR_ROWS = (2, 5, 8, 11, 14)   # grid rows of the five floors, top to bottom
 GROUND_ROW = FLOOR_ROWS[-1]
 
 NUM_LAYOUTS = 8
-NUM_LEVELS = 16                  # two rounds of the 8 layouts
+NUM_LEVELS = 17                  # two rounds of the 8 layouts, then the boss
+BOSS_LEVEL = 17
 BIRD_FREE_FROM = 9               # the big bird escapes its cage from level 9 on
 
 # Cage in the top-left corner (3 x 2 tiles, sitting on the top floor).
@@ -39,10 +40,14 @@ SAVE_FILE = os.path.join(SAVE_DIR, "save.json")
 
 def level_time(n):
     """Seconds allowed on level n (1-based)."""
+    if n == BOSS_LEVEL:
+        return 100
     return max(60, int(110 - 2.5 * (n - 1)))
 
 
 def hen_count(n):
+    if n == BOSS_LEVEL:
+        return 5
     return min(7, 2 + (n - 1) // 3)
 
 
@@ -51,7 +56,14 @@ def hen_speed(n):
 
 
 def bird_speed(n):
-    return 28.0 + 2.5 * (n - BIRD_FREE_FROM)
+    return min(50.0, 28.0 + 2.5 * (n - BIRD_FREE_FROM))
+
+
+# Big Momma, the boss hen (level 17): five times the size of a normal hen.
+MOMMA_SCALE = 5
+MOMMA_SPEED = (32.0, 56.0)       # walking speed at the start / when only one egg is left
+MOMMA_CHICK_EVERY = 9.0          # seconds between the chicks she clucks out
+MOMMA_MAX_HENS = 9
 
 
 # Visual themes, one per layout: sky gradient, silhouettes and platform wood.
@@ -72,4 +84,6 @@ THEMES = [
          stars=False, plank=(190, 130, 76), grass=(110, 190, 80)),
     dict(sky=((24, 6, 30), (110, 30, 90)), hill=((70, 24, 80), (46, 14, 58)), orb=(255, 120, 150), orb_pos=(150, 70),
          stars=True, plank=(130, 80, 90), grass=(150, 90, 130)),
+    dict(sky=((40, 4, 8), (190, 60, 30)), hill=((90, 24, 30), (60, 14, 22)), orb=(255, 90, 60), orb_pos=(160, 60),
+         stars=False, plank=(120, 70, 50), grass=(160, 70, 40)),
 ]

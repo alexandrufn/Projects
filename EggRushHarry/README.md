@@ -10,7 +10,14 @@ the grain for bonus points, and keep away from the hens. Every level brings more
 
 In levels 1-8 the big bird is locked in its cage in the top-left corner. After you clear level 8
 it breaks out: from level 9 on it flies after Harry, so the second half of the game is much
-harder. There are **16 levels** in total (8 layouts, played twice). Clear level 16 to win.
+harder. There are **16 normal levels** (8 layouts, played twice).
+
+## Level 17: Big Momma
+
+The final level is a boss fight and by far the hardest. Big Momma, a hen five times normal size,
+stomps back and forth along the ground, and touching her is fatal. She walks faster and turns red as
+you collect eggs, and every few seconds she clucks out another chick. There are 20 eggs to
+collect, the big bird is hunting you, and the floor above her is the only safe place. Clear it to win.
 
 ## Play
 

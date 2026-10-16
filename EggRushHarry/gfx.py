@@ -8,7 +8,7 @@ import random
 
 import pygame
 
-from config import (W, H, OY, TILE, COLS, FLOOR_ROWS, GROUND_ROW, THEMES, CAGE_RECT)
+from config import (W, H, OY, TILE, COLS, FLOOR_ROWS, GROUND_ROW, THEMES, CAGE_RECT, MOMMA_SCALE)
 
 OUT = (24, 16, 30)
 
@@ -358,3 +358,11 @@ class Sprites:
         self.cage_open = make_cage(True)
         small = pygame.transform.scale(self.bird[1], (30, 24))
         self.bird_small = small
+        self.momma = {}
+        for name in ("w0", "w1"):
+            img = self.hen[name]
+            big = pygame.transform.scale(img, (img.get_width() * MOMMA_SCALE, img.get_height() * MOMMA_SCALE))
+            angry = big.copy()
+            angry.fill((90, 0, 0, 0), special_flags=pygame.BLEND_RGB_ADD)
+            self.momma[(name, False)] = big
+            self.momma[(name, True)] = angry

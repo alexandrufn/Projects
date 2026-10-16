@@ -5,7 +5,7 @@ import random
 import pygame
 
 from config import (W, OY, TILE, FLOOR_ROWS, CAGE_CENTER, PLAYER_SPEED, CLIMB_SPEED, GRAVITY, JUMP_V,
-                    bird_speed)
+                    MOMMA_SPEED, MOMMA_CHICK_EVERY, bird_speed)
 
 
 def _sign(v):
@@ -235,3 +235,50 @@ class Bird:
             return False
         px, py = player.center()
         return math.hypot(px - self.x, py - self.y) < 12
+
+
+class Momma:
+    """Big Momma: a hen five times normal size that stomps back and forth along the ground."""
+
+    HALF_W = 40            # half the hit-box width (the sprite is wider, to be forgiving)
+    HEIGHT = 72            # stays below the floor above (one 96px hall)
+
+    def __init__(self, x, y):
+        self.start = (x, y)
+        self.reset()
+
+    def reset(self):
+        self.x, self.y = self.start
+        self.dir = 1
+        self.anim = 0.0
+        self.chick_timer = MOMMA_CHICK_EVERY
+        self.cluck = 0.0           # >0 while she is clucking out a chick
+
+    def rect(self):
+        return pygame.Rect(int(self.x - self.HALF_W), int(self.y - self.HEIGHT), 2 * self.HALF_W, self.HEIGHT)
+
+    def speed(self, eggs_left, eggs_total):
+        lo, hi = MOMMA_SPEED
+        return lo + (hi - lo) * (1 - eggs_left / max(1, eggs_total))
+
+    def enraged(self, eggs_left, eggs_total):
+        return eggs_left <= eggs_total // 3
+
+    def update(self, dt, eggs_left, eggs_total):
+        """Returns True when she clucks out a new chick this frame."""
+        spawn = False
+        if self.cluck > 0:
+            self.cluck -= dt
+            return False
+        self.anim += dt * 6
+        self.x += self.dir * self.speed(eggs_left, eggs_total) * dt
+        if self.x < 54:
+            self.x, self.dir = 54, 1
+        elif self.x > W - 54:
+            self.x, self.dir = W - 54, -1
+        self.chick_timer -= dt
+        if self.chick_timer <= 0:
+            self.chick_timer = MOMMA_CHICK_EVERY
+            self.cluck = 0.7
+            spawn = True
+        return spawn

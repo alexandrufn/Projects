@@ -6,9 +6,10 @@ import pygame
 
 import gfx
 from config import (W, H, OY, TILE, LIVES, NUM_LEVELS, BIRD_FREE_FROM, CAGE_RECT, CAGE_CENTER, GROUND_ROW,
+                    MOMMA_MAX_HENS,
                     SCORE_EGG, SCORE_GRAIN, SCORE_TIME, SCORE_CLEAR, EXTRA_LIFE_EVERY,
                     level_time, hen_speed)
-from entities import Player, Hen, Bird
+from entities import Player, Hen, Bird, Momma
 from levels import Level
 
 GOLD = (255, 214, 80)
@@ -76,6 +77,8 @@ class PlayScene:
         self.player = Player(self.level)
         speed = hen_speed(n)
         self.hens = [Hen(x, y, speed, self.rng) for x, y in self.level.hen_spawns]
+        self.base_hens = len(self.hens)
+        self.momma = Momma(60, OY + GROUND_ROW * TILE) if self.level.boss else None
         self.free_bird = n >= BIRD_FREE_FROM
         self.bird = Bird(n, self.rng)
         self.time_left = float(level_time(n))
@@ -122,6 +125,11 @@ class PlayScene:
         self.player.update(dt, inp, self.level, a)
         for h in self.hens:
             h.update(dt, self.level, self.player)
+        if self.momma:
+            if self.momma.update(dt, len(self.level.eggs), self.egg_total):
+                a.play("cluck")
+                if len(self.hens) < MOMMA_MAX_HENS:
+                    self.hens.append(Hen(self.momma.x, self.momma.y, hen_speed(self.n), self.rng))
         if self.free_bird:
             before = self.bird.free
             self.bird.update(dt, self.player)
@@ -154,7 +162,8 @@ class PlayScene:
             return
         if self.invuln <= 0:
             pr = self.player.rect()
-            if any(pr.colliderect(h.rect()) for h in self.hens) or (self.free_bird and self.bird.hits(self.player)):
+            if (any(pr.colliderect(h.rect()) for h in self.hens) or (self.free_bird and self.bird.hits(self.player))
+                    or (self.momma and pr.colliderect(self.momma.rect()))):
                 self.die()
 
     def die(self):
@@ -170,8 +179,11 @@ class PlayScene:
                 self.app.change(GameOverScene(self.app, self.score, self.n))
                 return
             self.player.reset(self.level)
+            del self.hens[self.base_hens:]
             for h in self.hens:
                 h.reset()
+            if self.momma:
+                self.momma.reset()
             self.bird.reset()
             self.time_left = max(self.time_left, 30.0)
             self.phase, self.t = "ready", 0.0
@@ -225,6 +237,15 @@ class PlayScene:
             if h.dir < 0 and h.state != "climb":
                 img = pygame.transform.flip(img, True, False)
             s.blit(img, (h.x - 10, h.y - 17))
+        if self.momma:
+            m = self.momma
+            enraged = m.enraged(len(self.level.eggs), self.egg_total)
+            img = sp.momma[("w%d" % (int(m.anim) % 2), enraged)]
+            if m.dir < 0:
+                img = pygame.transform.flip(img, True, False)
+            shake = (self.rng.randint(-2, 2), self.rng.randint(-2, 2)) if m.cluck > 0 or enraged else (0, 0)
+            bob = abs(math.sin(m.anim * math.pi)) * 3
+            s.blit(img, (m.x - img.get_width() / 2 + shake[0], m.y - img.get_height() + 5 - bob + shake[1]))
         self.draw_player(s)
         if self.free_bird and self.phase != "intro":
             img = sp.bird[int(self.clock * 7) % 2]
@@ -270,10 +291,11 @@ class PlayScene:
             veil = pygame.Surface((W, 90), pygame.SRCALPHA)
             veil.fill((8, 4, 20, 190))
             s.blit(veil, (0, 100))
-            gfx.text(s, "LEVEL %d" % self.n, 34, (cx, 124), GOLD)
-            msg = ("THE BIG BIRD HAS ESCAPED!" if self.n == BIRD_FREE_FROM
+            gfx.text(s, "FINAL LEVEL" if self.level.boss else "LEVEL %d" % self.n, 34, (cx, 124), GOLD)
+            msg = ("BIG MOMMA WANTS HER EGGS BACK!" if self.level.boss
+                   else "THE BIG BIRD HAS ESCAPED!" if self.n == BIRD_FREE_FROM
                    else "THE BIG BIRD IS LOOSE!" if self.free_bird else "THE BIG BIRD IS CAGED... FOR NOW")
-            gfx.text(s, msg, 18, (cx, 154), RED if self.free_bird else WHITE)
+            gfx.text(s, msg, 18, (cx, 154), RED if self.free_bird or self.level.boss else WHITE)
             gfx.text(s, "COLLECT ALL %d EGGS" % self.egg_total, 16, (cx, 174), (200, 220, 255))
         elif self.phase == "ready":
             gfx.text(s, "GET READY!", 26, (cx, 128), GOLD)
@@ -334,7 +356,7 @@ class WinScene(_EndScene):
         self.panel(s)
         sp = self.app.sprites
         gfx.text(s, "YOU DID IT!", 44, (W // 2, 90), GOLD)
-        gfx.text(s, "All 16 levels cleared. The big bird is beaten!", 16, (W // 2, 124), WHITE)
+        gfx.text(s, "All %d levels cleared. Big Momma is beaten!" % NUM_LEVELS, 16, (W // 2, 124), WHITE)
         gfx.text(s, "FINAL SCORE %06d" % self.score, 26, (W // 2, 152), GOLD)
         if int(self.t * 2) % 2 == 0:
             gfx.text(s, "PRESS SPACE", 16, (W // 2, 204), (200, 200, 235))
