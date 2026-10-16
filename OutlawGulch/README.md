@@ -4,8 +4,20 @@ A vertical-scrolling western shoot-'em-up in the spirit of Capcom's arcade class
 (1985), written from scratch with Python and pygame. All graphics and sounds are generated in
 code, so there are no image or audio files.
 
-You are a bounty hunter pushing up the trail. Gun down the outlaws, gunmen, dynamite throwers and
+You are a one-man army pushing up the trail. Gun down the outlaws, gunmen, dynamite throwers and
 charging riders, grab the pickups, and take down the boss waiting at the end of each stage.
+
+## Choose your hero
+
+Before the game starts you pick one of two 80s-action-movie-style heroes (A/D or arrow keys, then
+Space; the mouse works too):
+
+| Hero | Style | Strengths |
+|------|-------|-----------|
+| Headband Hank | Bare-chested, red headband, bandolier | Faster movement and faster fire; 3 hearts, 1 bomb |
+| Commando Carl | Camo face paint, army tank top | Tougher: 4 hearts (up to 6) and 2 starting bombs; a little slower |
+
+Both are original characters in the spirit of the era's action heroes.
 
 ## Stages and bosses
 
@@ -21,7 +33,7 @@ Each boss gets a Wanted poster before the fight.
 
 ## What's different from the original
 
-- You have **3 hearts** (up to 5) instead of dying in one hit, plus **bombs** that wipe the screen.
+- You have **hearts** (3-4, up to 5-6) instead of dying in one hit, plus **bombs** that wipe the screen.
 - **Free aim:** hold the left mouse button to shoot towards the cursor, or use the classic
   three fixed shots (left diagonal, straight ahead, right diagonal).
 - Smashable **barrels**, five different **bosses**, and gun smoke.

@@ -7,7 +7,7 @@ import math
 
 import pygame
 
-from config import (W, H, OY, PLAYER_SPEED, PLAYER_HP, START_BOMBS, WEAPONS, WEAPON_TIME, INVULN_HIT)
+from config import (W, H, OY, PLAYER_SPEED, HEROES, WEAPONS, WEAPON_TIME, INVULN_HIT)
 
 MIN_X, MAX_X = 10, W - 10
 MIN_Y, MAX_Y = OY + 18, H - 12
@@ -100,13 +100,15 @@ class Barrel:
 # The player
 # ----------------------------------------------------------------------------
 class Player:
-    def __init__(self):
-        self.lives_left = 0
+    def __init__(self, hero="hank"):
+        self.hero = hero
+        self.stats = HEROES[hero]
+        self.max_hp = self.stats["max_hp"]
         self.reset(full=True)
 
     def reset(self, full=False):
         self.x, self.y = W / 2, H - 40
-        self.hp = PLAYER_HP
+        self.hp = self.stats["hp"]
         self.invuln = 0.0
         self.cool = 0.0
         self.anim = 0.0
@@ -114,12 +116,12 @@ class Player:
         self.weapon, self.wtime = "revolver", 0.0
         self.boots = False
         if full:
-            self.bombs = START_BOMBS
+            self.bombs = self.stats["bombs"]
         self.dead = False
 
     @property
     def speed(self):
-        return PLAYER_SPEED * (1.3 if self.boots else 1.0)
+        return PLAYER_SPEED * self.stats["speed"] * (1.3 if self.boots else 1.0)
 
     def update(self, dt, inp, blockers):
         self.invuln = max(0.0, self.invuln - dt)
@@ -166,7 +168,7 @@ class Player:
         if not dirs or self.cool > 0:
             return [], None
         w = WEAPONS[self.weapon]
-        self.cool = w["cd"]
+        self.cool = w["cd"] * self.stats["cd"]
         out = []
         for dx, dy in dirs:
             base = math.atan2(dy, dx)
@@ -413,7 +415,7 @@ class Boss:
 
     def _cobra(self, dt, ctx, p, frac, rage):
         ctx.dt = dt
-        self.x = W / 2 + math.sin(self.t * 1.25 * rage) * 112
+        self.x = W / 2 + math.sin(self.t * 0.95 * rage) * 104
         self.y = OY + 54 + math.sin(self.t * 2.1) * 8
         self._every("dyn", 2.6 / rage, ctx, lambda: [
             ctx.throw_dynamite(self.x, self.y + 10, clamp(p.x + dx, 16, W - 16), clamp(p.y + dy, MIN_Y, MAX_Y))

@@ -6,22 +6,22 @@ import pygame
 
 import gfx
 from config import (W, H, OY, PLAY_H, LIVES, STAGES, SCROLL_SPEED, MAX_BOMBS, WEAPON_TIME, BOUNTY_EXTRA_LIFE,
-                    INVULN_RESPAWN, START_BOMBS)
+                    INVULN_RESPAWN, HEROES, HERO_ORDER)
 from entities import (Player, Enemy, Boss, Bullet, Dynamite, Explosion, Puff, Item, Barrel, ENEMY_STATS)
 
 GOLD = (255, 214, 90)
 WHITE = (250, 246, 236)
 RED = (255, 96, 90)
-MAX_HP = 5
 
 
 class Run:
     """State carried from stage to stage."""
 
-    def __init__(self):
+    def __init__(self, hero="hank"):
+        self.hero = hero
         self.score = 0
         self.lives = LIVES
-        self.player = Player()
+        self.player = Player(hero)
         self.next_life = BOUNTY_EXTRA_LIFE
 
 
@@ -62,8 +62,7 @@ class TitleScene:
         self.t += dt
         if inp.confirm:
             self.app.audio.play("start")
-            run = Run()
-            self.app.change(PlayScene(self.app, 0, run))
+            self.app.change(CharacterSelectScene(self.app))
         elif inp.pause or inp.quit:
             self.app.running = False
 
@@ -88,8 +87,70 @@ class TitleScene:
         for i, ln in enumerate(lines):
             gfx.text(s, ln, 14, (W // 2, 188 + i * 12), (225, 215, 235))
         x = (self.t * 40) % (W + 60) - 30
-        s.blit(sp.billy[(0, int(self.t * 8) % 2)], (x - 9, 218))
+        s.blit(sp.hero["hank"][(0, int(self.t * 8) % 2)], (x - 9, 218))
         s.blit(sp.enemy["outlaw"][int(self.t * 8) % 2], (W - x - 9, 236))
+
+
+class CharacterSelectScene:
+    """Pick the hero before the game starts."""
+
+    CARD_W, CARD_H = 140, 196
+
+    def __init__(self, app):
+        self.app = app
+        self.stage = gfx.Stage(0, 400, 5)
+        self.sel = 0
+        self.t = 0.0
+        self.prev_dx = 0
+
+    def card_rect(self, i):
+        return pygame.Rect(14 + i * (self.CARD_W + 12), 40, self.CARD_W, self.CARD_H)
+
+    def update(self, dt, inp):
+        self.t += dt
+        if inp.dx and inp.dx != self.prev_dx:
+            self.sel = (self.sel + inp.dx) % len(HERO_ORDER)
+            self.app.audio.play("tick")
+        self.prev_dx = inp.dx
+        if inp.mouse_active:
+            for i in range(len(HERO_ORDER)):
+                if self.card_rect(i).collidepoint(inp.mouse_pos):
+                    self.sel = i
+        if inp.confirm:
+            self.app.audio.play("start")
+            self.app.change(PlayScene(self.app, 0, Run(HERO_ORDER[self.sel])))
+        elif inp.pause or inp.quit:
+            self.app.change(TitleScene(self.app))
+
+    def draw(self, s):
+        sp = self.app.sprites
+        cam = int(400 - (self.t * 20) % 400)
+        s.blit(self.stage.surf, (0, OY), (0, cam, W, PLAY_H))
+        veil = pygame.Surface((W, H), pygame.SRCALPHA)
+        veil.fill((14, 8, 22, 205))
+        s.blit(veil, (0, 0))
+        gfx.text(s, "CHOOSE YOUR HERO", 28, (W // 2, 22), GOLD)
+        labels = ("SPEED", "FIRE RATE", "HEALTH", "BOMBS")
+        for i, key in enumerate(HERO_ORDER):
+            hero = HEROES[key]
+            r = self.card_rect(i)
+            chosen = i == self.sel
+            pygame.draw.rect(s, (40, 26, 44) if chosen else (24, 16, 32), r)
+            pygame.draw.rect(s, GOLD if chosen else (80, 60, 90), r, 2 if chosen else 1)
+            port = sp.portrait[key]
+            bob = int(math.sin(self.t * 4) * 2) if chosen else 0
+            pygame.draw.ellipse(s, (0, 0, 0), (r.centerx - 24, r.y + 120, 48, 10))
+            s.blit(port, (r.centerx - port.get_width() // 2, r.y + 124 - port.get_height() - bob + 4))
+            gfx.text(s, hero["name"], 16, (r.centerx, r.y + 22), WHITE if chosen else (170, 160, 180))
+            for j, (lab, pips) in enumerate(zip(labels, hero["pips"])):
+                y = r.y + 142 + j * 12
+                gfx.text(s, lab, 12, (r.x + 8, y), (200, 190, 210), anchor="midleft", shadow=False)
+                for k in range(5):
+                    c = (GOLD if chosen else (190, 160, 90)) if k < pips else (60, 46, 70)
+                    pygame.draw.rect(s, c, (r.right - 8 - (5 - k) * 9, y - 3, 7, 6))
+        hero = HEROES[HERO_ORDER[self.sel]]
+        gfx.text(s, hero["tag"], 14, (W // 2, H - 12), (225, 215, 235))
+        gfx.text(s, "A/D or arrows: choose     SPACE: start     ESC: back", 12, (W // 2, 33), (160, 150, 180))
 
 
 class PlayScene:
@@ -250,7 +311,7 @@ class PlayScene:
         if self.t > 5.0 or (inp.confirm and self.t > 2.5):
             self.finish()
             if self.idx + 1 >= len(STAGES):
-                self.app.change(WinScene(self.app, self.run.score))
+                self.app.change(WinScene(self.app, self.run.score, self.run.hero))
             else:
                 self.app.change(PlayScene(self.app, self.idx + 1, self.run))
 
@@ -449,7 +510,7 @@ class PlayScene:
         p = self.player
         self.app.audio.play("pickup")
         if kind == "heart":
-            p.hp = min(MAX_HP, p.hp + 1)
+            p.hp = min(p.max_hp, p.hp + 1)
         elif kind == "boots":
             p.boots = True
         elif kind in ("shotgun", "rifle"):
@@ -516,7 +577,7 @@ class PlayScene:
                 if o.invuln > 0 and int(o.invuln * 16) % 2 == 0:
                     continue
                 view.blit(shadow, (o.x - 8, o.y - 4))
-                view.blit(sp.billy[(o.aim, int(o.anim) % 2)], (o.x - 9, o.y - 21))
+                view.blit(sp.hero[o.hero][(o.aim, int(o.anim) % 2)], (o.x - 9, o.y - 21))
         for q in self.puffs:
             t = q.age / q.life
             r = max(1, int(q.size * (0.6 + t * 1.6)))
@@ -555,9 +616,9 @@ class PlayScene:
         pygame.draw.rect(s, (16, 10, 24), (0, 0, W, OY))
         pygame.draw.line(s, (90, 60, 100), (0, OY - 1), (W, OY - 1))
         gfx.text(s, "$%06d" % self.run.score, 16, (4, 8), GOLD, anchor="midleft")
-        for i in range(MAX_HP):
-            s.blit(sp.heart_full if i < p.hp else sp.heart_empty, (70 + i * 12, 3))
-        gfx.text(s, "x%d" % max(0, self.run.lives), 16, (138, 8), WHITE, anchor="midleft")
+        for i in range(p.max_hp):
+            s.blit(sp.heart_full if i < p.hp else sp.heart_empty, (70 + i * 11, 3))
+        gfx.text(s, "x%d" % max(0, self.run.lives), 16, (142, 8), WHITE, anchor="midleft")
         s.blit(sp.items["bomb"], (160, 1))
         gfx.text(s, "x%d" % p.bombs, 16, (178, 8), WHITE, anchor="midleft")
         if p.weapon != "revolver":
@@ -658,6 +719,10 @@ class GameOverScene(_EndScene):
 
 
 class WinScene(_EndScene):
+    def __init__(self, app, score, hero="hank"):
+        super().__init__(app, score)
+        self.hero = hero
+
     def draw(self, s):
         self.panel(s)
         gfx.text(s, "THE GULCH IS FREE!", 34, (W // 2, 94), GOLD)
@@ -666,4 +731,4 @@ class WinScene(_EndScene):
         if int(self.t * 2) % 2 == 0:
             gfx.text(s, "PRESS SPACE", 16, (W // 2, 204), (200, 200, 235))
         sp = self.app.sprites
-        s.blit(sp.billy[(0, int(self.t * 6) % 2)], (W // 2 - 9, 224 - abs(math.sin(self.t * 5)) * 10))
+        s.blit(sp.hero[self.hero][(0, int(self.t * 6) % 2)], (W // 2 - 9, 224 - abs(math.sin(self.t * 5)) * 10))

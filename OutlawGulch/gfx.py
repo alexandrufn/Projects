@@ -69,8 +69,10 @@ def text(surf, s, size, pos, color=(255, 255, 255), anchor="center", shadow=True
 # Characters
 # ----------------------------------------------------------------------------
 PALETTES = {
-    "billy": dict(hat=(150, 96, 52), band=(210, 60, 50), shirt=(236, 232, 214), vest=(120, 76, 44),
-                  pants=(64, 92, 160), boot=(80, 50, 30), mask=None),
+    "hank": dict(hat=(30, 24, 22), band=(214, 40, 44), shirt=(224, 168, 128), vest=(224, 168, 128),
+                 pants=(76, 92, 60), boot=(40, 34, 30), mask=None, style="band", bare=True),
+    "carl": dict(hat=(96, 70, 44), band=(40, 80, 40), shirt=(70, 110, 62), vest=(52, 86, 48),
+                 pants=(84, 104, 66), boot=(36, 30, 26), mask=None, style="buzz", bare=True, tank=True),
     "outlaw": dict(hat=(46, 42, 54), band=(150, 40, 40), shirt=(184, 60, 60), vest=(120, 40, 44),
                    pants=(88, 84, 100), boot=(50, 40, 40), mask=(206, 50, 50)),
     "gunman": dict(hat=(196, 156, 96), band=(120, 80, 40), shirt=(92, 132, 84), vest=(70, 104, 66),
@@ -102,9 +104,15 @@ def humanoid(pal, back=False, step=0, aim=0):
     _r(s, pal["vest"], 9, 9, 4, 7)
     if not back:
         _r(s, shade(pal["vest"], 0.7), 7, 9, 2, 7)
-    for ax in (1, 13):
-        _r(s, pal["shirt"], ax, 9, 2, 5)
-        _r(s, SKIN, ax, 14, 2, 2)
+    bare = pal.get("bare")
+    for ax in ((0, 13) if bare else (1, 13)):
+        if bare:
+            _r(s, SKIN, ax, 8, 3, 7)
+            _r(s, SKIN_D, ax + (2 if ax == 0 else 0), 9, 1, 5)
+            _r(s, SKIN, ax, 15, 3, 1)
+        else:
+            _r(s, pal["shirt"], ax, 9, 2, 5)
+            _r(s, SKIN, ax, 14, 2, 2)
     gx = 13 + aim
     if back:
         _r(s, (70, 70, 80), gx, 5, 2, 7)
@@ -122,10 +130,42 @@ def humanoid(pal, back=False, step=0, aim=0):
             _r(s, pal["mask"], 5, 7, 6, 3)
         else:
             _r(s, SKIN_D, 7, 8, 2, 1)
-    _r(s, pal["hat"], 4, 0, 8, 4)
-    _r(s, pal["band"], 4, 3, 8, 1)
-    _r(s, pal["hat"], 1, 3, 14, 2)
-    _r(s, shade(pal["hat"], 0.7), 1, 4, 14, 1)
+    style = pal.get("style")
+    if style == "band":                                   # bare-chested hero with a headband
+        _r(s, pal["hat"], 4, 1, 8, 4)
+        _r(s, pal["hat"], 3, 3, 1, 4)
+        _r(s, pal["hat"], 12, 3, 1, 4)
+        _r(s, pal["band"], 4, 4, 8, 2)
+        _r(s, pal["band"], 12, 5, 2, 1)
+        _r(s, pal["band"], 13, 6, 2, 2)
+        if not back:
+            _r(s, SKIN_D, 6, 7, 4, 1)
+    elif style == "buzz":                                 # buzz cut and camo face paint
+        _r(s, pal["hat"], 5, 1, 6, 3)
+        _r(s, pal["hat"], 4, 3, 1, 2)
+        _r(s, pal["hat"], 11, 3, 1, 2)
+        if not back:
+            _r(s, (40, 70, 40), 5, 5, 6, 1)
+            _r(s, (40, 70, 40), 5, 7, 2, 2)
+            _r(s, (40, 70, 40), 9, 7, 2, 2)
+    else:
+        _r(s, pal["hat"], 4, 0, 8, 4)
+        _r(s, pal["band"], 4, 3, 8, 1)
+        _r(s, pal["hat"], 1, 3, 14, 2)
+        _r(s, shade(pal["hat"], 0.7), 1, 4, 14, 1)
+    if pal.get("bare"):
+        for i in range(6):                                # chest muscles / straps
+            _r(s, SKIN_D, 5 + (i % 2) * 4, 9 + i, 1, 1) if not pal.get("tank") else None
+        if pal.get("tank"):
+            _r(s, pal["shirt"], 4, 8, 3, 3)
+            _r(s, pal["shirt"], 9, 8, 3, 3)
+            for yy in range(3):
+                _r(s, (60, 50, 40), 4 + yy * 2, 11 + yy * 2, 3, 1)  # ammo belt
+        else:
+            for i in range(7):                            # bandolier across the chest
+                _r(s, (110, 80, 50), 3 + i, 9 + i, 2, 1)
+            _r(s, (230, 200, 90), 5, 11, 1, 1)
+            _r(s, (230, 200, 90), 8, 14, 1, 1)
     return outline(s)
 
 
@@ -225,10 +265,13 @@ class Sprites:
     """All sprite frames, built once at start-up."""
 
     def __init__(self):
-        self.billy = {}
-        for aim in (-2, 0, 2):
-            for step in (0, 1):
-                self.billy[(aim, step)] = humanoid(PALETTES["billy"], back=True, step=step, aim=aim)
+        self.hero = {}
+        self.portrait = {}
+        for key in ("hank", "carl"):
+            self.hero[key] = {(aim, step): humanoid(PALETTES[key], back=True, step=step, aim=aim)
+                              for aim in (-2, 0, 2) for step in (0, 1)}
+            front = humanoid(PALETTES[key], back=False)
+            self.portrait[key] = pygame.transform.scale(front, (front.get_width() * 4, front.get_height() * 4))
         self.enemy = {k: [humanoid(PALETTES[k], step=0), humanoid(PALETTES[k], step=1)]
                       for k in ("outlaw", "gunman", "dynamite")}
         self.rider = [make_rider(0), make_rider(1)]

@@ -36,7 +36,7 @@ class App:
         import gfx
         from audio import Audio
         self.sprites = gfx.Sprites()
-        pygame.display.set_icon(self.sprites.billy[(0, 0)])
+        pygame.display.set_icon(self.sprites.hero["hank"][(0, 0)])
         self.audio = Audio()
         self.save = load_save()
         self.input = Input()
