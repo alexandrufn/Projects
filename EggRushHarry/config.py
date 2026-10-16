@@ -24,8 +24,8 @@ CAGE_CENTER = (24, OY + 18)
 LIVES = 5
 PLAYER_SPEED = 62.0
 CLIMB_SPEED = 48.0
-GRAVITY = 620.0
-JUMP_V = 205.0
+GRAVITY = 300.0
+JUMP_V = 85.0          # apex ~12px: long enough to cross a 2-tile gap, too low to clear a hen
 
 SCORE_EGG = 100
 SCORE_GRAIN = 50

@@ -33,7 +33,8 @@ The file is written to `dist\EggRushHarry.exe`.
 | Pause         | Esc                                   |
 | Quit to title | Q (while paused)                      |
 
-Jumps are committed: you can't steer in mid-air, so line them up first.
+Jumps are committed: you can't steer in mid-air, so line them up first. Jumps are low: they
+cross gaps but you can't hop over a hen, so you have to time your route or use the ladders.
 
 ## Scoring
 

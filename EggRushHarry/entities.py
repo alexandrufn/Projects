@@ -126,7 +126,7 @@ class Hen:
         self.state, self.timer, self.last_col = "walk", 0.0, None
 
     def rect(self):
-        return pygame.Rect(int(self.x - 6), int(self.y - 12), 12, 12)
+        return pygame.Rect(int(self.x - 6), int(self.y - 16), 12, 16)
 
     def update(self, dt, level, player):
         if self.state == "eat":
