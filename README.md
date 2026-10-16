@@ -7,6 +7,7 @@ Small Python games built with [pygame](https://www.pygame.org/).
 | High Noon Reloaded | [`HighNoonReloaded/`](HighNoonReloaded) |
 | Iron Fist Temple | [`IronFistTemple/`](IronFistTemple) |
 | Egg Rush Harry | [`EggRushHarry/`](EggRushHarry) |
+| Outlaw Gulch | [`OutlawGulch/`](OutlawGulch) |
 
 Each folder has its own README with controls and gameplay details.
 
