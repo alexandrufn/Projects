@@ -4,7 +4,7 @@ import random
 
 import pygame
 
-from config import (W, OY, TILE, FLOOR_ROWS, CAGE_CENTER, PLAYER_SPEED, CLIMB_SPEED, GRAVITY, FALL_DRIFT, JUMP_V,
+from config import (W, OY, TILE, FLOOR_ROWS, GROUND_ROW, CAGE_CENTER, PLAYER_SPEED, CLIMB_SPEED, GRAVITY, FALL_DRIFT, JUMP_V,
                     MOMMA_SPEED, MOMMA_CHICK_EVERY, bird_speed)
 
 
@@ -25,7 +25,6 @@ class Player:
         self.anim = 0.0
         self.span = (0, 0)
         self.grab_lock = 0.0           # after jumping off a ladder, can't re-grab for a moment
-        self.air_y0 = self.y           # feet height when he last left the ground
         self.on_lift = None
         self.hazard = None             # "shaft" when he falls down a lift shaft
 
@@ -38,18 +37,15 @@ class Player:
     # ------------------------------------------------------------------ update
     def update(self, dt, inp, level, audio=None):
         self.hazard = None
-        before = self.state
         self._step(dt, inp, level, audio)
-        if before != "air" and self.state == "air":
-            self.air_y0 = self.y
         if self.state != "ground":
             self.on_lift = None
         self._check_lifts(level)
 
     def _check_lifts(self, level):
-        """Falling down a lift shaft (the pit under the lift) kills Harry."""
+        """Falling into the pit under a lift (below the ground floor) kills Harry."""
         for lf in level.lifts:
-            if lf.x0 + 2 <= self.x <= lf.x1 - 2 and self.state == "air" and self.y > self.air_y0 + 8:
+            if lf.x0 + 2 <= self.x <= lf.x1 - 2 and self.state == "air" and self.y > OY + GROUND_ROW * TILE + 4:
                 self.hazard = "shaft"
 
     def _step(self, dt, inp, level, audio=None):
