@@ -170,7 +170,7 @@ _LIFT_CACHE = {}
 def lift_plan(k):
     """(left column of a two-tile lift shaft, eggs, grain, hen spots) for layout k, or None when no shaft fits.
 
-    The ground floor is cut away under the lift, leaving a pit; items that sat in it move to the nearest free
+    The shaft is cut through every floor, leaving a pit at the bottom; items that sat in it move to the nearest free
     spot on the same floor, so every layout keeps its egg count."""
     if k not in _LIFT_CACHE:
         _LIFT_CACHE[k] = None if k == BOSS_K else _plan_lift(k)
@@ -188,7 +188,7 @@ def _plan_lift(k):
         shaft = (c, c + 1)
         if any(lc in shaft for _, _, lc in ladders) or SPAWN_COL in range(c - 1, c + 3):
             continue
-        cut = [[ok and not (i == nfl - 1 and x in shaft) for x, ok in enumerate(row)] for i, row in enumerate(floors)]
+        cut = [[ok and x not in shaft for x, ok in enumerate(row)] for row in floors]
         if any(not any(cut[i][:]) for i in range(nfl)):
             continue
         if not _connected(cut, ladders):
@@ -198,7 +198,7 @@ def _plan_lift(k):
         ok = True
         for pool in (eggs, grain):
             for i, x in sorted(pool):
-                if i != nfl - 1 or x not in shaft:
+                if x not in shaft:
                     continue
                 spots = sorted((abs(cx - x), cx) for cx in range(COLS)
                                if cut[i][cx] and (i, cx) not in taken and not (i == 0 and cx < 3)
@@ -212,7 +212,7 @@ def _plan_lift(k):
                 taken.add((i, spots[0][1]))
         hens = []
         for i, x in lay["hens"]:
-            if i == nfl - 1 and x in shaft:
+            if x in shaft:
                 x = min((abs(cx - x), cx) for cx in range(COLS)
                         if cut[i][cx] and not any(cx == lc and i in (u, l) for u, l, lc in ladders))[1]
             hens.append((i, x))
@@ -263,7 +263,7 @@ class Level:
             lc, eggs, grain, hens = plan
             self.lifts.append(Lift(lc))
             self.shafts.append((lc, lc + 1))
-            self.floors -= {(GROUND_ROW, c) for c in (lc, lc + 1)}
+            self.floors -= {(r, c) for r in FLOOR_ROWS for c in (lc, lc + 1)}
         self.eggs = {(FLOOR_ROWS[i] - 1, c) for i, c in eggs}
         self.grain = {(FLOOR_ROWS[i] - 1, c) for i, c in grain}
         sc, si = lay["spawn"]

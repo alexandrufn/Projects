@@ -21,9 +21,9 @@ collect, the big bird is hunting you, and the floor above her is the only safe p
 
 ## Lifts
 
-From level 3 on, a lift shuttles up and down beside the floors, over a pit in the ground. Step on when it is level
-with you, ride it, and step off at any floor. Hens can't use it. On the ground the lift sits over a pit: if you walk into it while the lift is
-elsewhere, you fall in and lose a life.
+From level 3 on, a lift shuttles up and down an open shaft cut through every floor. Step on when it is
+level with you, ride it, and step off at any floor. Hens can't use it. If you step into the shaft while
+the lift is elsewhere, you fall down to the pit at the bottom and lose a life.
 
 ## Play
 
