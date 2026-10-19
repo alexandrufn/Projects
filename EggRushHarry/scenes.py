@@ -190,7 +190,7 @@ class PlayScene:
             if self.momma:
                 self.momma.reset()
             self.bird.reset()
-            self.time_left = max(self.time_left, 30.0)
+            self.time_left = max(self.time_left, 55.0)
             self.phase, self.t = "ready", 0.0
 
     def _clear(self, dt, inp):
