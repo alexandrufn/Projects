@@ -19,6 +19,12 @@ stomps back and forth along the ground, and touching her is fatal. She walks fas
 you collect eggs, and every few seconds she clucks out another chick. There are 20 eggs to
 collect, the big bird is hunting you, and the floor above her is the only safe place. Clear it to win.
 
+## Lifts
+
+From level 3 on, a lift shuttles up and down beside the floors, over a pit in the ground. Step on when it is level
+with you, ride it, and step off at any floor. Hens can't use it. On the ground the lift sits over a pit: if you walk into it while the lift is
+elsewhere, you fall in and lose a life.
+
 ## Play
 
 ```
@@ -36,10 +42,11 @@ The file is written to `dist\EggRushHarry.exe`.
 |---------------|---------------------------------------|
 | Move          | Left / Right or A / D                 |
 | Climb         | Up / Down or W / S (next to a ladder) |
-| Jump          | Space (or Enter, Z, Ctrl)             |
+| Jump          | Space (or Enter, Z, Ctrl); also from a ladder |
 | Pause         | Esc                                   |
 | Quit to title | Q (while paused)                      |
 
+Stepping off a ledge drops Harry almost straight down, so he lands close to the edge.
 Jumps are committed: you can't steer in mid-air, so line them up first. Jumps are low: they
 cross gaps but you can't hop over a hen, so you have to time your route or use the ladders.
 

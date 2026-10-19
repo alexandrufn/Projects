@@ -280,6 +280,18 @@ def _ladder_tile():
     return s
 
 
+def make_lift():
+    w = 2 * TILE
+    s = _surf(w, 8)
+    _rect(s, (96, 100, 120), 0, 0, w, 8)
+    _rect(s, (170, 176, 200), 0, 0, w, 2)
+    for x in range(0, w, 8):
+        _rect(s, (246, 206, 64), x, 3, 4, 3)
+        _rect(s, (36, 30, 44), x + 4, 3, 4, 3)
+    _rect(s, (50, 52, 70), 0, 7, w, 1)
+    return s
+
+
 def render_level(level):
     """Pre-render the sky, scenery, platforms and ladders for a level."""
     theme = THEMES[level.k]
@@ -333,6 +345,14 @@ def render_level(level):
             surf.blit(ground[(c * 7) % 4], (x, y))
         else:
             surf.blit(planks[(c + r) % 3], (x, y))
+    for c0, c1 in level.shafts:       # lift shafts: dark well with a rail down each side
+        top, bot = OY + FLOOR_ROWS[0] * TILE, H
+        well = _surf((c1 - c0 + 1) * TILE, bot - top)
+        well.fill((10, 8, 20, 90))
+        surf.blit(well, (c0 * TILE, top))
+        for x in (c0 * TILE, (c1 + 1) * TILE - 2):
+            _rect(surf, (96, 100, 120), x, top, 2, bot - top)
+            _rect(surf, (170, 176, 200), x, top, 1, bot - top)
     lad = _ladder_tile()
     for (r, c) in level.ladders:
         surf.blit(lad, (c * TILE, OY + r * TILE))
@@ -353,6 +373,7 @@ class Sprites:
         self.hen = make_hen()
         self.egg = [make_egg(False), make_egg(True)]
         self.grain = make_grain()
+        self.lift = make_lift()
         self.bird = make_bird()
         self.cage_shut = make_cage(False)
         self.cage_open = make_cage(True)

@@ -26,7 +26,13 @@ LIVES = 5
 PLAYER_SPEED = 62.0
 CLIMB_SPEED = 48.0
 GRAVITY = 300.0
+FALL_DRIFT = 0.3       # share of walking speed kept when stepping off a ledge: lands close to the edge
 JUMP_V = 85.0          # apex ~12px: long enough to cross a 2-tile gap, too low to clear a hen
+
+# Lifts (moving platforms) appear from this level on, except in the boss level.
+LIFT_FROM_LEVEL = 3
+LIFT_SPEED = 36.0      # px/s
+LIFT_DWELL = 0.8       # seconds it waits at the top and the bottom
 
 SCORE_EGG = 100
 SCORE_GRAIN = 50

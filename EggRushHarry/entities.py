@@ -4,7 +4,7 @@ import random
 
 import pygame
 
-from config import (W, OY, TILE, FLOOR_ROWS, CAGE_CENTER, PLAYER_SPEED, CLIMB_SPEED, GRAVITY, JUMP_V,
+from config import (W, OY, TILE, FLOOR_ROWS, CAGE_CENTER, PLAYER_SPEED, CLIMB_SPEED, GRAVITY, FALL_DRIFT, JUMP_V,
                     MOMMA_SPEED, MOMMA_CHICK_EVERY, bird_speed)
 
 
@@ -24,6 +24,10 @@ class Player:
         self.facing = 1
         self.anim = 0.0
         self.span = (0, 0)
+        self.grab_lock = 0.0           # after jumping off a ladder, can't re-grab for a moment
+        self.air_y0 = self.y           # feet height when he last left the ground
+        self.on_lift = None
+        self.hazard = None             # "shaft" when he falls down a lift shaft
 
     def rect(self):
         return pygame.Rect(int(self.x - 4), int(self.y - 16), 8, 16)
@@ -33,7 +37,36 @@ class Player:
 
     # ------------------------------------------------------------------ update
     def update(self, dt, inp, level, audio=None):
+        self.hazard = None
+        before = self.state
+        self._step(dt, inp, level, audio)
+        if before != "air" and self.state == "air":
+            self.air_y0 = self.y
+        if self.state != "ground":
+            self.on_lift = None
+        self._check_lifts(level)
+
+    def _check_lifts(self, level):
+        """Falling down a lift shaft (the pit under the lift) kills Harry."""
+        for lf in level.lifts:
+            if lf.x0 + 2 <= self.x <= lf.x1 - 2 and self.state == "air" and self.y > self.air_y0 + 8:
+                self.hazard = "shaft"
+
+    def _step(self, dt, inp, level, audio=None):
+        self.grab_lock = max(0.0, self.grab_lock - dt)
         if self.state == "ladder":
+            if inp.jump_pressed:
+                dirx = inp.right - inp.left
+                self.vx = dirx * PLAYER_SPEED
+                self.jump_vx = self.vx
+                self.vy = -JUMP_V
+                self.grab_lock = 0.3
+                self.state = "air"
+                if dirx:
+                    self.facing = dirx
+                if audio:
+                    audio.play("jump")
+                return
             dy = (inp.down - inp.up) * CLIMB_SPEED * dt
             self.y += dy
             if dy:
@@ -60,9 +93,9 @@ class Player:
                 self.state = "air"
                 if audio:
                     audio.play("jump")
-            elif not level.standing(self.x, self.y):
+            elif not self._supported(level):
                 self.vy = 0.0
-                self.jump_vx = self.vx
+                self.jump_vx = self.vx * FALL_DRIFT
                 self.state = "air"
             return
 
@@ -70,15 +103,34 @@ class Player:
         self.vy += GRAVITY * dt
         nx = max(8.0, min(W - 8.0, self.x + self.jump_vx * dt))
         ny = self.y + self.vy * dt
-        if (inp.up or inp.down) and self._grab(level, inp):
+        if (inp.up or inp.down) and not self.grab_lock and self._grab(level, inp):
             return
         if self.vy > 0:
             for r in FLOOR_ROWS:
                 yt = OY + r * TILE
                 if self.y <= yt + 1e-6 and ny >= yt and level.standing(nx, yt):
                     self.x, self.y, self.vy, self.state = nx, float(yt), 0.0, "ground"
+                    self.on_lift = None
+                    return
+            for lf in level.lifts:
+                if lf.x0 <= nx <= lf.x1 and self.y <= lf.y + 2 and ny >= lf.y:
+                    self.x, self.y, self.vy, self.state = nx, float(lf.y), 0.0, "ground"
+                    self.on_lift = lf
                     return
         self.x, self.y = nx, ny
+
+    def _supported(self, level):
+        """Is Harry standing on a lift or a floor? Snaps his feet onto whichever holds him up."""
+        lf = self.on_lift = level.lift_under(self.x, self.y)
+        if lf:
+            self.y = lf.y
+            return True
+        row = round((self.y - OY) / TILE)
+        ry = OY + row * TILE
+        if row in FLOOR_ROWS and abs(self.y - ry) <= 6 and level.standing(self.x, ry):
+            self.y = float(ry)
+            return True
+        return False
 
     def _grab(self, level, inp):
         col = int(self.x // TILE)

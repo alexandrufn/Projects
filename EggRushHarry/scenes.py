@@ -122,7 +122,12 @@ class PlayScene:
         self.invuln = max(0.0, self.invuln - dt)
         if int(self.time_left + dt) != int(self.time_left) and self.time_left < 10 and self.time_left > 0:
             a.play("tick")
+        for lf in self.level.lifts:
+            lf.update(dt)
         self.player.update(dt, inp, self.level, a)
+        if self.player.hazard:
+            self.die()
+            return
         for h in self.hens:
             h.update(dt, self.level, self.player)
         if self.momma:
@@ -246,6 +251,8 @@ class PlayScene:
             shake = (self.rng.randint(-2, 2), self.rng.randint(-2, 2)) if m.cluck > 0 or enraged else (0, 0)
             bob = abs(math.sin(m.anim * math.pi)) * 3
             s.blit(img, (m.x - img.get_width() / 2 + shake[0], m.y - img.get_height() + 5 - bob + shake[1]))
+        for lf in self.level.lifts:
+            s.blit(sp.lift, (lf.x0, lf.y))
         self.draw_player(s)
         if self.free_bird and self.phase != "intro":
             img = sp.bird[int(self.clock * 7) % 2]
