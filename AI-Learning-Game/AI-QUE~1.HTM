@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI QUEST - 8-Bit Learning Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #000011;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+canvas#galaxy {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+}
+
+#game {
+  position: relative;
+  z-index: 10;
+  width: 820px;
+  max-width: 99vw;
+  min-height: 520px;
+  background: rgba(5, 0, 30, 0.88);
+  border: 3px solid #6030ff;
+  box-shadow: 0 0 40px #6030ff88, inset 0 0 30px #1a006688;
+  border-radius: 4px;
+  padding: 30px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── HUD ── */
+#hud {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 9px;
+  color: #aaa;
+}
+#hud .lives { color: #ff4466; font-size: 14px; letter-spacing: 4px; }
+#hud .score { color: #ffee44; }
+#hud .level-tag { color: #88aaff; }
+
+/* ── Screens ── */
+.screen { display: none; width: 100%; text-align: center; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ── Menu ── */
+#menu-title {
+  font-size: 28px;
+  color: #cc88ff;
+  text-shadow: 0 0 16px #cc88ff, 0 0 32px #8844cc;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+  animation: pulse 2s infinite;
+}
+#menu-subtitle {
+  font-size: 10px;
+  color: #8899ff;
+  margin-bottom: 36px;
+  letter-spacing: 1px;
+}
+.menu-logo {
+  font-size: 48px;
+  margin-bottom: 12px;
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ── Buttons ── */
+.btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  padding: 12px 28px;
+  margin: 8px;
+  background: #1a0050;
+  color: #cc88ff;
+  border: 2px solid #8855dd;
+  box-shadow: 0 0 10px #8855dd66;
+  cursor: pointer;
+  transition: all 0.1s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.btn:hover {
+  background: #3a0090;
+  color: #ffffff;
+  box-shadow: 0 0 20px #aa66ff;
+  border-color: #cc88ff;
+  transform: scale(1.04);
+}
+.btn:active { transform: scale(0.97); }
+.btn.correct-btn { border-color: #44ff88; color: #44ff88; box-shadow: 0 0 16px #44ff88; }
+.btn.wrong-btn   { border-color: #ff4444; color: #ff4444; box-shadow: 0 0 16px #ff4444; }
+.btn.big { font-size: 14px; padding: 16px 40px; margin-top: 20px; }
+.btn.gold { border-color: #ffdd00; color: #ffdd00; box-shadow: 0 0 14px #ffdd0066; }
+
+/* ── Question screen ── */
+#q-level-name {
+  font-size: 9px;
+  color: #8899ff;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+#q-number {
+  font-size: 9px;
+  color: #aaaaaa;
+  margin-bottom: 14px;
+}
+#q-text {
+  font-size: 12px;
+  color: #eeeeff;
+  line-height: 1.8;
+  max-width: 680px;
+  margin-bottom: 28px;
+  text-shadow: 0 0 8px #8888ff44;
+  min-height: 48px;
+}
+#q-points-badge {
+  font-size: 8px;
+  color: #ffdd00;
+  background: rgba(255,220,0,0.1);
+  border: 1px solid #ffdd0044;
+  padding: 4px 10px;
+  margin-bottom: 18px;
+  border-radius: 2px;
+}
+.answer-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  width: 100%;
+  max-width: 640px;
+  padding: 13px 16px;
+  margin: 5px 0;
+  background: rgba(40, 10, 80, 0.7);
+  color: #ccbbff;
+  border: 2px solid #5535aa;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.6;
+  transition: all 0.12s;
+}
+.answer-btn:hover { background: rgba(80,30,160,0.9); border-color: #aa77ff; color: #fff; box-shadow: 0 0 12px #8866ff66; }
+.answer-btn.correct { background: rgba(0,80,30,0.9); border-color: #44ff88; color: #44ff88; box-shadow: 0 0 14px #44ff8888; }
+.answer-btn.wrong   { background: rgba(80,0,0,0.9);  border-color: #ff4444; color: #ff4444; box-shadow: 0 0 14px #ff444488; }
+.answer-btn:disabled { cursor: default; }
+
+/* ── Feedback ── */
+#feedback {
+  font-size: 14px;
+  margin: 14px 0;
+  min-height: 24px;
+  animation: fadeIn 0.3s;
+}
+.feedback-correct { color: #44ff88; text-shadow: 0 0 12px #44ff88; }
+.feedback-wrong   { color: #ff4466; text-shadow: 0 0 12px #ff4466; }
+
+/* ── Level intro ── */
+#level-intro-name {
+  font-size: 24px;
+  color: #ffcc44;
+  text-shadow: 0 0 20px #ffcc44;
+  margin-bottom: 14px;
+  animation: pulse 1.5s infinite;
+}
+#level-intro-desc { font-size: 9px; color: #aabbff; line-height: 2; max-width: 500px; margin-bottom: 30px; }
+
+/* ── Bonus round ── */
+#bonus-title { font-size: 18px; color: #ffdd00; text-shadow: 0 0 16px #ffdd00; margin-bottom: 8px; }
+#bonus-sub   { font-size: 9px; color: #aaa; margin-bottom: 28px; }
+.egg-container { display: flex; gap: 30px; justify-content: center; margin-top: 10px; }
+.egg {
+  width: 110px; height: 140px;
+  background: radial-gradient(circle at 40% 35%, #ffeeaa, #dd8800);
+  border: 3px solid #ffcc44;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 0 20px #ffcc4466;
+  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.egg:hover { transform: scale(1.08) rotate(-3deg); box-shadow: 0 0 36px #ffcc44aa; }
+.egg::before {
+  content: ''; position: absolute; top: 15%; left: 20%; width: 30%; height: 25%;
+  background: rgba(255,255,255,0.3); border-radius: 50%; transform: rotate(-30deg);
+}
+.egg.cracked {
+  animation: crack 0.4s forwards;
+}
+.egg.egg-life { background: radial-gradient(circle at 40% 35%, #ff99bb, #cc2244); border-color: #ff4488; box-shadow: 0 0 20px #ff448866; }
+.egg.egg-pts  { background: radial-gradient(circle at 40% 35%, #aaff88, #228822); border-color: #44ff44; box-shadow: 0 0 20px #44ff4466; }
+.egg.egg-none { background: radial-gradient(circle at 40% 35%, #888, #444); border-color: #666; box-shadow: 0 0 10px #33333366; }
+.egg-reveal { font-size: 10px; color: #fff; text-align: center; margin-top: 8px; text-shadow: 0 0 6px #fff; }
+
+/* ── Boss fight ── */
+#boss-screen { position: relative; }
+#boss-title { font-size: 16px; color: #ff4444; text-shadow: 0 0 16px #ff4444; margin-bottom: 6px; }
+#boss-sub    { font-size: 8px; color: #ff8888; margin-bottom: 18px; }
+#boss-arena {
+  display: flex;
+  width: 100%;
+  gap: 24px;
+  align-items: flex-start;
+}
+#boss-left { flex: 1; }
+#boss-right {
+  width: 200px;
+  display: flex; flex-direction: column; align-items: center;
+}
+#boss-name { font-size: 9px; color: #ff4444; margin-bottom: 8px; }
+#boss-hp-bar-wrap {
+  width: 180px; height: 18px;
+  background: #220000; border: 2px solid #ff4444; margin-bottom: 12px;
+  position: relative; overflow: hidden;
+}
+#boss-hp-bar {
+  height: 100%; background: linear-gradient(90deg, #ff0000, #ff6600);
+  transition: width 0.5s;
+  box-shadow: 0 0 8px #ff4444;
+}
+#boss-hp-text { font-size: 7px; color: #ff6666; margin-bottom: 10px; }
+#boss-canvas { border: 2px solid #ff333366; background: rgba(30,0,0,0.5); }
+#boss-q-section { width: 100%; }
+#boss-q-label { font-size: 8px; color: #ff8866; margin-bottom: 12px; letter-spacing: 1px; }
+#boss-q-counter { font-size: 8px; color: #ffaa44; margin-bottom: 10px; }
+#boss-q-text {
+  font-size: 11px; color: #ffccaa; line-height: 1.8;
+  margin-bottom: 18px; min-height: 44px;
+  text-shadow: 0 0 6px #ff440022;
+}
+.boss-answer-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  margin: 4px 0;
+  background: rgba(60, 5, 5, 0.8);
+  color: #ffbbaa;
+  border: 2px solid #882222;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.5;
+  transition: all 0.12s;
+}
+.boss-answer-btn:hover { background: rgba(120,20,20,0.9); border-color: #ff6644; color: #fff; }
+.boss-answer-btn.correct { background: rgba(0,60,20,0.9); border-color: #44ff88; color: #44ff88; }
+.boss-answer-btn.wrong   { background: rgba(80,0,0,0.9);  border-color: #ff4444; color: #ff4444; }
+.boss-answer-btn:disabled { cursor: default; }
+#boss-feedback { font-size: 11px; min-height: 22px; margin: 8px 0; }
+
+/* ── Game Over / Win ── */
+#gameover-title { font-size: 30px; color: #ff3344; text-shadow: 0 0 20px #ff3344; margin-bottom: 20px; animation: pulse 1.5s infinite; }
+#win-title       { font-size: 28px; color: #ffdd00; text-shadow: 0 0 20px #ffdd00, 0 0 40px #ff8800; margin-bottom: 20px; animation: pulse 1.5s infinite; }
+.result-score    { font-size: 13px; color: #aaffcc; margin-bottom: 28px; }
+.result-msg      { font-size: 9px; color: #8899ff; line-height: 2; max-width: 500px; margin-bottom: 28px; }
+
+/* ── Progress bar ── */
+#progress-bar-wrap {
+  width: 100%; background: rgba(255,255,255,0.06);
+  border: 1px solid #3322aa; height: 6px; margin-bottom: 20px; border-radius: 2px;
+}
+#progress-bar { height: 100%; background: linear-gradient(90deg, #6644ff, #cc44ff); transition: width 0.4s; border-radius: 2px; }
+
+/* ── Divider ── */
+.neon-divider {
+  width: 80%; height: 2px;
+  background: linear-gradient(90deg, transparent, #6644ff, #cc44ff, #6644ff, transparent);
+  margin: 16px 0;
+  box-shadow: 0 0 8px #8855ff;
+}
+
+/* ── Animations ── */
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%,60% { transform: translateX(-8px); }
+  40%,80% { transform: translateX(8px); }
+}
+@keyframes crack {
+  0%   { transform: scale(1) rotate(0deg); }
+  30%  { transform: scale(1.15) rotate(5deg); }
+  60%  { transform: scale(0.9) rotate(-8deg); }
+  100% { transform: scale(1.1) rotate(0deg); opacity: 0.8; }
+}
+@keyframes bossHit {
+  0%,100% { transform: translateX(0); }
+  25%,75% { transform: translateX(10px); }
+  50%      { transform: translateX(-10px); }
+}
+@keyframes bossDefeat {
+  0%   { transform: scaleY(1) translateY(0); opacity: 1; }
+  60%  { transform: scaleY(1.1) translateY(-10px); opacity: 0.8; }
+  100% { transform: scaleY(0.1) translateY(60px); opacity: 0; }
+}
+@keyframes starTwinkle { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+.shake { animation: shake 0.4s; }
+.boss-hit { animation: bossHit 0.4s; }
+</style>
+</head>
+<body>
+
+<canvas id="galaxy"></canvas>
+
+<div id="game">
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="level-tag" id="hud-level">LEVEL 1</div>
+    <div class="lives" id="hud-lives">♥ ♥ ♥</div>
+    <div class="score">⭐ <span id="hud-score">0</span></div>
+  </div>
+
+  <div id="progress-bar-wrap"><div id="progress-bar" style="width:0%"></div></div>
+
+  <!-- ── MENU SCREEN ── -->
+  <div id="screen-menu" class="screen active">
+    <div class="menu-logo">🤖</div>
+    <div id="menu-title">AI QUEST</div>
+    <div id="menu-subtitle">8-BIT LEARNING ADVENTURE</div>
+    <div class="neon-divider"></div>
+    <div style="font-size:8px;color:#7788aa;line-height:2.2;margin-bottom:28px;max-width:500px;">
+      EXPLORE THE GALAXY OF ARTIFICIAL INTELLIGENCE<br>
+      ANSWER QUESTIONS · COLLECT EGGS · DEFEAT THE BOSS<br>
+      3 LIVES · 5 LEVELS · INFINITE GLORY
+    </div>
+    <button class="btn big" onclick="startGame()">▶ START GAME</button>
+    <div style="font-size:7px;color:#445;margin-top:20px;">USE MOUSE TO SELECT ANSWERS</div>
+  </div>
+
+  <!-- ── LEVEL INTRO SCREEN ── -->
+  <div id="screen-level-intro" class="screen">
+    <div style="font-size:10px;color:#6677ff;margin-bottom:16px;letter-spacing:3px;">ENTERING SECTOR</div>
+    <div id="level-intro-name">LEVEL 1</div>
+    <div class="neon-divider"></div>
+    <div id="level-intro-desc">Get ready!</div>
+    <button class="btn big" id="btn-begin-level" onclick="beginLevel()">▶ BEGIN</button>
+  </div>
+
+  <!-- ── QUESTION SCREEN ── -->
+  <div id="screen-question" class="screen">
+    <div id="q-level-name">NEURAL NEBULA</div>
+    <div id="q-number">QUESTION 1 / 3</div>
+    <div class="neon-divider"></div>
+    <div id="q-points-badge">⭐ +100 PTS</div>
+    <div id="q-text">Loading question...</div>
+    <div id="answers-container"></div>
+    <div id="feedback"></div>
+  </div>
+
+  <!-- ── BONUS ROUND SCREEN ── -->
+  <div id="screen-bonus" class="screen">
+    <div id="bonus-title">✨ BONUS ROUND! ✨</div>
+    <div id="bonus-sub">PICK A MAGICAL EGG TO REVEAL YOUR PRIZE</div>
+    <div class="neon-divider"></div>
+    <div class="egg-container" id="egg-container"></div>
+    <div id="bonus-result" style="font-size:11px;min-height:24px;margin-top:20px;"></div>
+    <button class="btn" id="btn-after-bonus" style="display:none;margin-top:16px;" onclick="afterBonus()">CONTINUE ▶</button>
+  </div>
+
+  <!-- ── BOSS SCREEN ── -->
+  <div id="screen-boss" class="screen">
+    <div id="boss-title">⚡ FINAL BOSS! ⚡</div>
+    <div id="boss-sub">DEFEAT ROCKY THE ALGORITHM TO COMPLETE YOUR TRAINING!</div>
+    <div class="neon-divider"></div>
+    <div id="boss-arena">
+      <div id="boss-left">
+        <div id="boss-q-label">🤖 BOSS CHALLENGE — ANSWER TO STRIKE!</div>
+        <div id="boss-q-counter">ATTACK 1 / 5</div>
+        <div id="boss-q-text">Loading boss question...</div>
+        <div id="boss-answers-container"></div>
+        <div id="boss-feedback"></div>
+      </div>
+      <div id="boss-right">
+        <div id="boss-name">ROCKY THE ALGO</div>
+        <div id="boss-hp-bar-wrap"><div id="boss-hp-bar" style="width:100%"></div></div>
+        <div id="boss-hp-text">HP: <span id="boss-hp-val">100</span> / 100</div>
+        <canvas id="boss-canvas" width="180" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GAME OVER SCREEN ── -->
+  <div id="screen-gameover" class="screen">
+    <div style="font-size:48px;margin-bottom:12px;">💀</div>
+    <div id="gameover-title">GAME OVER</div>
+    <div class="result-score">FINAL SCORE: <span id="go-score">0</span></div>
+    <div class="result-msg">THE GALAXY AWAITS YOUR RETURN,<br>BRAVE LEARNER. TRY AGAIN!</div>
+    <button class="btn big" onclick="startGame()">↺ RETRY</button>
+  </div>
+
+  <!-- ── WIN SCREEN ── -->
+  <div id="screen-win" class="screen">
+    <div style="font-size:48px;margin-bottom:12px;animation:float 2s ease-in-out infinite">🏆</div>
+    <div id="win-title">YOU WIN!</div>
+    <div class="result-score">FINAL SCORE: <span id="win-score">0</span></div>
+    <div class="result-msg">
+      ROCKY THE ALGO IS DEFEATED!<br>
+      YOU HAVE MASTERED THE GALAXY OF AI!<br>
+      THE UNIVERSE BOWS TO YOUR KNOWLEDGE!
+    </div>
+    <button class="btn big gold" onclick="startGame()">↺ PLAY AGAIN</button>
+  </div>
+
+</div><!-- #game -->
+
+<script>
+// ════════════════════════════════════════
+//  GALAXY BACKGROUND
+// ════════════════════════════════════════
+const gc = document.getElementById('galaxy');
+const gctx = gc.getContext('2d');
+let stars = [], nebulae = [];
+
+function initGalaxy() {
+  gc.width = window.innerWidth;
+  gc.height = window.innerHeight;
+  stars = [];
+  nebulae = [];
+  for (let i = 0; i < 280; i++) {
+    stars.push({
+      x: Math.random() * gc.width,
+      y: Math.random() * gc.height,
+      r: Math.random() * 1.8 + 0.2,
+      speed: Math.random() * 0.15 + 0.02,
+      twinkle: Math.random() * Math.PI * 2,
+      twinkleSpeed: Math.random() * 0.03 + 0.005,
+      color: ['#ffffff','#aaaaff','#ffaaff','#aaffff','#ffeeaa'][Math.floor(Math.random()*5)]
+    });
+  }
+  for (let i = 0; i < 5; i++) {
+    nebulae.push({
+      x: Math.random() * gc.width,
+      y: Math.random() * gc.height,
+      rx: Math.random() * 220 + 100,
+      ry: Math.random() * 120 + 60,
+      color: ['rgba(80,20,160,','rgba(20,50,140,','rgba(100,10,80,','rgba(10,80,120,'][Math.floor(Math.random()*4)],
+      alpha: Math.random() * 0.18 + 0.04
+    });
+  }
+}
+
+function drawGalaxy() {
+  gctx.clearRect(0, 0, gc.width, gc.height);
+  // Deep space gradient
+  const grad = gctx.createRadialGradient(gc.width/2, gc.height/2, 0, gc.width/2, gc.height/2, gc.width*0.8);
+  grad.addColorStop(0, '#0a0020');
+  grad.addColorStop(0.5, '#04000f');
+  grad.addColorStop(1, '#000005');
+  gctx.fillStyle = grad;
+  gctx.fillRect(0,0,gc.width,gc.height);
+  // Nebulae
+  nebulae.forEach(n => {
+    const g = gctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.rx);
+    g.addColorStop(0, n.color + (n.alpha*1.5) + ')');
+    g.addColorStop(1, n.color + '0)');
+    gctx.save();
+    gctx.scale(1, n.ry/n.rx);
+    gctx.fillStyle = g;
+    gctx.beginPath();
+    gctx.arc(n.x, n.y * (n.rx/n.ry), n.rx, 0, Math.PI*2);
+    gctx.fill();
+    gctx.restore();
+  });
+  // Stars
+  stars.forEach(s => {
+    s.twinkle += s.twinkleSpeed;
+    const alpha = 0.4 + 0.6 * Math.abs(Math.sin(s.twinkle));
+    gctx.save();
+    gctx.globalAlpha = alpha;
+    gctx.fillStyle = s.color;
+    gctx.shadowColor = s.color;
+    gctx.shadowBlur = s.r > 1.2 ? 6 : 2;
+    gctx.beginPath();
+    gctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    gctx.fill();
+    gctx.restore();
+    s.y += s.speed;
+    if (s.y > gc.height) { s.y = -2; s.x = Math.random() * gc.width; }
+  });
+  requestAnimationFrame(drawGalaxy);
+}
+window.addEventListener('resize', initGalaxy);
+initGalaxy();
+drawGalaxy();
+
+// ════════════════════════════════════════
+//  AUDIO ENGINE
+// ════════════════════════════════════════
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+function playTone(freq, type, duration, vol=0.18, delay=0) {
+  try {
+    const ctx = getAudio();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ctx.currentTime + delay);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    o.start(ctx.currentTime + delay);
+    o.stop(ctx.currentTime + delay + duration + 0.05);
+  } catch(e){}
+}
+function sfxCorrect() {
+  playTone(523, 'square', 0.1);
+  playTone(659, 'square', 0.1, 0.15, 0.1);
+  playTone(784, 'square', 0.2, 0.15, 0.2);
+}
+function sfxWrong() {
+  playTone(200, 'sawtooth', 0.15);
+  playTone(150, 'sawtooth', 0.2, 0.2, 0.15);
+}
+function sfxBonus() {
+  [523,587,659,698,784].forEach((f,i) => playTone(f, 'square', 0.1, 0.2, i*0.08));
+}
+function sfxBossHit() {
+  playTone(100, 'sawtooth', 0.15, 0.25);
+  playTone(80,  'sawtooth', 0.12, 0.2, 0.15);
+}
+function sfxWin() {
+  [784,880,988,1047].forEach((f,i) => playTone(f, 'square', 0.18, 0.2, i*0.1));
+}
+function sfxLevelUp() {
+  [392,523,659,784].forEach((f,i) => playTone(f, 'square', 0.12, 0.2, i*0.09));
+}
+
+// ════════════════════════════════════════
+//  GAME DATA
+// ════════════════════════════════════════
+const LEVELS = [
+  {
+    id: 1,
+    name: "NEURAL NEBULA",
+    desc: "SECTOR 1: THE BASICS OF AI\nLearn what Artificial Intelligence is\nand how machines can think.",
+    questions: [
+      {
+        text: "What does AI stand for?",
+        answers: ["Automatic Intelligence", "Artificial Intelligence", "Advanced Information"],
+        correct: 1, points: 100
+      },
+      {
+        text: "Which of these is a real example of AI in everyday life?",
+        answers: ["A light switch", "A voice assistant like Siri or Alexa", "A television remote"],
+        correct: 1, points: 100
+      },
+      {
+        text: "What does machine learning allow computers to do?",
+        answers: ["Browse the internet faster", "Learn patterns from data without explicit rules", "Store more files on a hard drive"],
+        correct: 1, points: 150
+      }
+    ]
+  },
+  {
+    id: 2,
+    name: "DATA DRIFT ZONE",
+    desc: "SECTOR 2: HOW AI LEARNS\nDive into neural networks, training\nand the power of data.",
+    questions: [
+      {
+        text: "What is a neural network primarily inspired by?",
+        answers: ["Electronic circuits", "The human brain", "Weather patterns"],
+        correct: 1, points: 200
+      },
+      {
+        text: "In machine learning, what is 'training' a model?",
+        answers: ["Writing code line by line", "Feeding data so the model improves its predictions", "Teaching a robot physical movements"],
+        correct: 1, points: 200
+      },
+      {
+        text: "Which type of learning uses labeled data with known correct answers?",
+        answers: ["Unsupervised learning", "Supervised learning", "Reinforcement learning"],
+        correct: 1, points: 250
+      }
+    ]
+  },
+  {
+    id: 3,
+    name: "ALGORITHM ASTEROID",
+    desc: "SECTOR 3: DEEPER CONCEPTS\nGradient descent, overfitting and\nnatural language — the real stuff.",
+    questions: [
+      {
+        text: "What is 'overfitting' in machine learning?",
+        answers: [
+          "When a model learns too slowly",
+          "When a model memorizes training data and fails on new data",
+          "When a model uses too much CPU power"
+        ],
+        correct: 1, points: 300
+      },
+      {
+        text: "What is 'gradient descent' used for in AI training?",
+        answers: [
+          "Sorting large datasets quickly",
+          "Minimizing the model's error by adjusting weights step by step",
+          "Downloading data from the internet"
+        ],
+        correct: 1, points: 300
+      },
+      {
+        text: "What does NLP stand for in the context of AI?",
+        answers: ["Network Learning Protocol", "Natural Language Processing", "Numerical Logic Processing"],
+        correct: 1, points: 350
+      }
+    ]
+  },
+  {
+    id: 4,
+    name: "TRANSFORMER GALAXY",
+    desc: "SECTOR 4: ADVANCED AI\nAttention mechanisms, architectures\nand the cutting edge of deep learning.",
+    questions: [
+      {
+        text: "What is the Transformer architecture primarily used for?",
+        answers: [
+          "Processing images in self-driving cars",
+          "Natural language tasks like translation and text generation",
+          "Controlling robotic arms in factories"
+        ],
+        correct: 1, points: 400
+      },
+      {
+        text: "What does the 'attention mechanism' do in a neural network?",
+        answers: [
+          "Prevents the model from forgetting old data",
+          "Weighs how important each part of the input is for the output",
+          "Speeds up the training process by half"
+        ],
+        correct: 1, points: 400
+      },
+      {
+        text: "What is the 'vanishing gradient problem' in deep networks?",
+        answers: [
+          "When gradients explode and become too large",
+          "When gradients shrink toward zero, making early layers learn very slowly",
+          "When the model stops responding to new data entirely"
+        ],
+        correct: 1, points: 500
+      }
+    ]
+  }
+];
+
+const BOSS_QUESTIONS = [
+  {
+    text: "What is the key difference between GPT and BERT architectures?",
+    answers: [
+      "GPT is decoder-only (generative); BERT is encoder-only (understanding)",
+      "GPT uses supervised learning; BERT uses unsupervised learning",
+      "GPT is for images; BERT is for text"
+    ],
+    correct: 0
+  },
+  {
+    text: "What is 'few-shot learning' in large language models?",
+    answers: [
+      "Training a model with only a few GPU nodes",
+      "A model's ability to perform a task from just a few examples in the prompt",
+      "A technique to make models run faster on mobile devices"
+    ],
+    correct: 1
+  },
+  {
+    text: "What is Constitutional AI (CAI) as developed by Anthropic?",
+    answers: [
+      "AI that follows government regulations automatically",
+      "A method training AI to be helpful and harmless via self-critique against principles",
+      "An AI system with a fixed legal constitution of rules it cannot break"
+    ],
+    correct: 1
+  },
+  {
+    text: "What does RLHF stand for and why does it matter?",
+    answers: [
+      "Rapid Learning from Human Features — speeds up model training",
+      "Reinforcement Learning from Human Feedback — aligns AI to human preferences",
+      "Recursive Learning for Human Frameworks — improves logic reasoning"
+    ],
+    correct: 1
+  },
+  {
+    text: "In LLMs, what is a 'hallucination'?",
+    answers: [
+      "When the model generates visually glitched output tokens",
+      "When the model produces confidently stated but factually wrong or made-up information",
+      "When the model runs out of context window memory"
+    ],
+    correct: 1
+  }
+];
+
+// ════════════════════════════════════════
+//  GAME STATE
+// ════════════════════════════════════════
+let state = {
+  lives: 3,
+  score: 0,
+  currentLevel: 0,    // index into LEVELS (0–3 = levels 1–4)
+  currentQ: 0,
+  bossHP: 100,
+  bossQ: 0,
+  phase: 'menu',      // menu | level-intro | question | bonus | boss | gameover | win
+  inBossLevelQuestions: false,  // true during level-5 questions before boss
+  bossLevelQ: 0,
+};
+
+// ════════════════════════════════════════
+//  SCREEN MANAGER
+// ════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function updateHUD() {
+  const hearts = '♥ '.repeat(state.lives).trim() || '☆';
+  document.getElementById('hud-lives').textContent = hearts;
+  document.getElementById('hud-score').textContent = state.score;
+  const levelLabel = state.currentLevel < 4
+    ? 'LEVEL ' + (state.currentLevel + 1)
+    : 'LEVEL 5 — BOSS';
+  document.getElementById('hud-level').textContent = levelLabel;
+  // Progress bar: out of 4 levels + boss
+  const pct = Math.min(100, Math.round((state.currentLevel / 5) * 100));
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+// ════════════════════════════════════════
+//  GAME FLOW
+// ════════════════════════════════════════
+function startGame() {
+  state = { lives:3, score:0, currentLevel:0, currentQ:0, bossHP:100, bossQ:0, phase:'level-intro', inBossLevelQuestions:false, bossLevelQ:0 };
+  updateHUD();
+  showLevelIntro(0);
+}
+
+function showLevelIntro(idx) {
+  if (idx < 4) {
+    const lvl = LEVELS[idx];
+    document.getElementById('level-intro-name').textContent = 'LEVEL ' + lvl.id + ': ' + lvl.name;
+    document.getElementById('level-intro-desc').innerHTML = lvl.desc.replace(/\n/g,'<br>');
+  } else {
+    document.getElementById('level-intro-name').textContent = 'LEVEL 5: THE FINAL FRONTIER';
+    document.getElementById('level-intro-desc').innerHTML =
+      'SECTOR 5: BOSS ENCOUNTER<br>Answer 3 expert questions,<br>then face ROCKY THE ALGORITHM<br>in an epic 5-question boss battle!';
+  }
+  showScreen('level-intro');
+  sfxLevelUp();
+}
+
+function beginLevel() {
+  state.currentQ = 0;
+  if (state.currentLevel < 4) {
+    state.phase = 'question';
+    showQuestion();
+  } else {
+    // Level 5 — first do 3 questions, then boss
+    state.inBossLevelQuestions = true;
+    state.bossLevelQ = 0;
+    state.phase = 'boss-level-q';
+    showBossLevelQuestion();
+  }
+}
+
+// Level 5 pre-boss questions
+const LEVEL5_QUESTIONS = [
+  {
+    text: "Which company created the GPT series of large language models?",
+    answers: ["Google DeepMind", "OpenAI", "Meta AI"],
+    correct: 1, points: 500
+  },
+  {
+    text: "What is 'prompt engineering'?",
+    answers: [
+      "A technique to compress model weights",
+      "Crafting input text to guide an AI model toward desired outputs",
+      "A method to speed up GPU training"
+    ],
+    correct: 1, points: 500
+  },
+  {
+    text: "What is an 'embedding' in the context of machine learning?",
+    answers: [
+      "A bug fix embedded in model weights",
+      "A dense vector representation that captures semantic meaning",
+      "A compression format for neural network files"
+    ],
+    correct: 1, points: 600
+  }
+];
+
+function showBossLevelQuestion() {
+  const q = LEVEL5_QUESTIONS[state.bossLevelQ];
+  document.getElementById('q-level-name').textContent = 'LEVEL 5: FINAL FRONTIER';
+  document.getElementById('q-number').textContent = 'QUESTION ' + (state.bossLevelQ+1) + ' / 3 — PRE-BOSS';
+  document.getElementById('q-points-badge').textContent = '⭐ +' + q.points + ' PTS';
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = '';
+
+  const cont = document.getElementById('answers-container');
+  cont.innerHTML = '';
+  q.answers.forEach((a, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = ['A) ','B) ','C) '][i] + a;
+    btn.onclick = () => answerBossLevelQ(i, q);
+    cont.appendChild(btn);
+  });
+  showScreen('question');
+  updateHUD();
+}
+
+function answerBossLevelQ(idx, q) {
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach(b => b.disabled = true);
+  const fb = document.getElementById('feedback');
+  if (idx === q.correct) {
+    btns[idx].classList.add('correct');
+    fb.textContent = '✓ CORRECT! +' + q.points + ' PTS';
+    fb.className = 'feedback-correct';
+    state.score += q.points;
+    sfxCorrect();
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[q.correct].classList.add('correct');
+    fb.textContent = '✗ WRONG! -1 LIFE';
+    fb.className = 'feedback-wrong';
+    state.lives--;
+    sfxWrong();
+    document.getElementById('game').classList.add('shake');
+    setTimeout(() => document.getElementById('game').classList.remove('shake'), 400);
+  }
+  updateHUD();
+  if (state.lives <= 0) {
+    setTimeout(gameOver, 1200);
+    return;
+  }
+  state.bossLevelQ++;
+  if (state.bossLevelQ >= 3) {
+    setTimeout(() => {
+      sfxBonus();
+      showBonusRound(true);
+    }, 1200);
+  } else {
+    setTimeout(showBossLevelQuestion, 1200);
+  }
+}
+
+function showQuestion() {
+  const lvl = LEVELS[state.currentLevel];
+  const q   = lvl.questions[state.currentQ];
+  document.getElementById('q-level-name').textContent = 'LEVEL ' + lvl.id + ': ' + lvl.name;
+  document.getElementById('q-number').textContent = 'QUESTION ' + (state.currentQ+1) + ' / 3';
+  document.getElementById('q-points-badge').textContent = '⭐ +' + q.points + ' PTS';
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = '';
+
+  const cont = document.getElementById('answers-container');
+  cont.innerHTML = '';
+  q.answers.forEach((a, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = ['A) ','B) ','C) '][i] + a;
+    btn.onclick = () => answerQuestion(i, q);
+    cont.appendChild(btn);
+  });
+  showScreen('question');
+  updateHUD();
+}
+
+function answerQuestion(idx, q) {
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach(b => b.disabled = true);
+  const fb = document.getElementById('feedback');
+  if (idx === q.correct) {
+    btns[idx].classList.add('correct');
+    fb.textContent = '✓ CORRECT! +' + q.points + ' PTS';
+    fb.className = 'feedback-correct';
+    state.score += q.points;
+    sfxCorrect();
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[q.correct].classList.add('correct');
+    fb.textContent = '✗ WRONG! -1 LIFE';
+    fb.className = 'feedback-wrong';
+    state.lives--;
+    sfxWrong();
+    document.getElementById('game').classList.add('shake');
+    setTimeout(() => document.getElementById('game').classList.remove('shake'), 400);
+  }
+  updateHUD();
+  if (state.lives <= 0) { setTimeout(gameOver, 1200); return; }
+  state.currentQ++;
+  if (state.currentQ >= 3) {
+    setTimeout(() => {
+      sfxBonus();
+      showBonusRound(false);
+    }, 1200);
+  } else {
+    setTimeout(showQuestion, 1200);
+  }
+}
+
+// ════════════════════════════════════════
+//  BONUS ROUND
+// ════════════════════════════════════════
+let bonusAfterBossLevel = false;
+function showBonusRound(afterBossLevel=false) {
+  bonusAfterBossLevel = afterBossLevel;
+  document.getElementById('bonus-result').textContent = '';
+  document.getElementById('btn-after-bonus').style.display = 'none';
+
+  // Randomize egg contents
+  const prizes = ['life','pts','none'];
+  // shuffle
+  for (let i = prizes.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [prizes[i],prizes[j]] = [prizes[j],prizes[i]];
+  }
+
+  const cont = document.getElementById('egg-container');
+  cont.innerHTML = '';
+  prizes.forEach((prize, i) => {
+    const egg = document.createElement('div');
+    egg.className = 'egg';
+    egg.innerHTML = '🥚<br><span style="font-size:9px;color:#ffeeaa;margin-top:4px;display:block">EGG ' + (i+1) + '</span>';
+    egg.dataset.prize = prize;
+    egg.onclick = () => revealEgg(egg, prize, prizes);
+    cont.appendChild(egg);
+  });
+  showScreen('bonus');
+}
+
+function revealEgg(eggEl, prize, allPrizes) {
+  // Disable all eggs
+  document.querySelectorAll('.egg').forEach(e => e.onclick = null);
+
+  eggEl.classList.add('cracked');
+  const resultDiv = document.getElementById('bonus-result');
+
+  if (prize === 'life') {
+    eggEl.className = 'egg egg-life cracked';
+    eggEl.innerHTML = '❤️<br><span style="font-size:8px;color:#ff88aa">+1 LIFE!</span>';
+    state.lives = Math.min(state.lives + 1, 5);
+    resultDiv.innerHTML = '<span style="color:#ff88aa;text-shadow:0 0 10px #ff4488">❤️ EXTRA LIFE! You have ' + state.lives + ' lives!</span>';
+    sfxBonus();
+  } else if (prize === 'pts') {
+    eggEl.className = 'egg egg-pts cracked';
+    eggEl.innerHTML = '⭐<br><span style="font-size:8px;color:#aaffaa">+500 PTS!</span>';
+    state.score += 500;
+    resultDiv.innerHTML = '<span style="color:#aaffaa;text-shadow:0 0 10px #44ff44">⭐ BONUS 500 POINTS!</span>';
+    sfxBonus();
+  } else {
+    eggEl.className = 'egg egg-none cracked';
+    eggEl.innerHTML = '💨<br><span style="font-size:8px;color:#888">Nothing...</span>';
+    resultDiv.innerHTML = '<span style="color:#888">The egg was empty... Better luck next time!</span>';
+    sfxWrong();
+  }
+
+  updateHUD();
+  setTimeout(() => {
+    document.getElementById('btn-after-bonus').style.display = 'inline-block';
+  }, 800);
+}
+
+function afterBonus() {
+  if (bonusAfterBossLevel) {
+    // After level 5 pre-questions bonus, go to boss fight
+    startBossFight();
+    return;
+  }
+  state.currentLevel++;
+  if (state.currentLevel >= 4) {
+    // Level 5
+    state.currentLevel = 4;
+    showLevelIntro(4);
+  } else {
+    showLevelIntro(state.currentLevel);
+  }
+}
+
+// ════════════════════════════════════════
+//  BOSS FIGHT
+// ════════════════════════════════════════
+function startBossFight() {
+  state.bossHP = 100;
+  state.bossQ = 0;
+  drawBoss(false, false);
+  showBossQuestion();
+  showScreen('boss');
+  updateHUD();
+}
+
+function showBossQuestion() {
+  const q = BOSS_QUESTIONS[state.bossQ];
+  document.getElementById('boss-q-counter').textContent = 'ATTACK ' + (state.bossQ+1) + ' / 5';
+  document.getElementById('boss-q-text').textContent = q.text;
+  document.getElementById('boss-feedback').textContent = '';
+  document.getElementById('boss-feedback').className = '';
+
+  const cont = document.getElementById('boss-answers-container');
+  cont.innerHTML = '';
+  q.answers.forEach((a, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'boss-answer-btn';
+    btn.textContent = ['A) ','B) ','C) '][i] + a;
+    btn.onclick = () => answerBoss(i, q);
+    cont.appendChild(btn);
+  });
+}
+
+function answerBoss(idx, q) {
+  const btns = document.querySelectorAll('.boss-answer-btn');
+  btns.forEach(b => b.disabled = true);
+  const fb = document.getElementById('boss-feedback');
+
+  if (idx === q.correct) {
+    btns[idx].classList.add('correct');
+    fb.innerHTML = '<span style="color:#44ff88">✓ DIRECT HIT! ROCKY LOSES HP!</span>';
+    state.score += 700;
+    const dmg = 20;
+    state.bossHP = Math.max(0, state.bossHP - dmg);
+    updateBossHP();
+    sfxBossHit();
+    drawBoss(true, false);
+    setTimeout(() => drawBoss(false, false), 400);
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[q.correct].classList.add('correct');
+    fb.innerHTML = '<span style="color:#ff4444">✗ MISS! -1 LIFE!</span>';
+    state.lives--;
+    sfxWrong();
+    drawBoss(false, true);
+    setTimeout(() => drawBoss(false, false), 400);
+  }
+  updateHUD();
+  if (state.lives <= 0) { setTimeout(gameOver, 1200); return; }
+
+  state.bossQ++;
+  if (state.bossQ >= 5) {
+    state.bossHP = 0;
+    updateBossHP();
+    setTimeout(bossDefeated, 1000);
+  } else {
+    setTimeout(showBossQuestion, 1400);
+  }
+}
+
+function updateBossHP() {
+  document.getElementById('boss-hp-bar').style.width = state.bossHP + '%';
+  document.getElementById('boss-hp-val').textContent = state.bossHP;
+}
+
+function bossDefeated() {
+  sfxWin();
+  drawBoss(false, false, true);
+  setTimeout(winGame, 1500);
+}
+
+// ════════════════════════════════════════
+//  BOSS CANVAS DRAWING (Rocky-style pixel art)
+// ════════════════════════════════════════
+function drawBoss(isHit, playerHit, defeated) {
+  const c = document.getElementById('boss-canvas');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,180,220);
+
+  const ox = 90; // center x
+  const oy = 30; // top of character
+
+  const hitShake = isHit ? (Math.random()>0.5?6:-6) : 0;
+  const px = ox + hitShake;
+
+  if (defeated) {
+    ctx.globalAlpha = 0.3;
+    ctx.save();
+    ctx.translate(px, oy + 80);
+    ctx.scale(1, 0.3);
+    ctx.translate(-px, -(oy+80));
+  }
+
+  // Flash red if hit
+  if (isHit) {
+    ctx.fillStyle = 'rgba(255,50,50,0.25)';
+    ctx.fillRect(0,0,180,220);
+  }
+  if (playerHit) {
+    ctx.fillStyle = 'rgba(50,50,255,0.15)';
+    ctx.fillRect(0,0,180,220);
+  }
+
+  // ── HEAD ──
+  ctx.fillStyle = '#d4956a';
+  ctx.fillRect(px-18, oy, 36, 34); // head block
+
+  // Crew cut hair (dark)
+  ctx.fillStyle = '#2a1a0a';
+  ctx.fillRect(px-18, oy, 36, 8);
+  ctx.fillRect(px-20, oy+4, 4, 10);
+  ctx.fillRect(px+16, oy+4, 4, 10);
+
+  // Eyes
+  ctx.fillStyle = '#1a0800';
+  ctx.fillRect(px-10, oy+12, 7, 6);
+  ctx.fillRect(px+3,  oy+12, 7, 6);
+  // Glare
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(px-9,  oy+12, 2, 2);
+  ctx.fillRect(px+4,  oy+12, 2, 2);
+
+  // Stubble/jaw
+  ctx.fillStyle = '#c0845a';
+  ctx.fillRect(px-14, oy+26, 28, 8);
+  // Mouth (determined scowl)
+  ctx.fillStyle = '#8b3a1a';
+  ctx.fillRect(px-8, oy+30, 16, 3);
+  ctx.fillStyle = '#2a1a0a';
+  ctx.fillRect(px-6, oy+31, 12, 1);
+
+  // Eyebrows (furrowed)
+  ctx.fillStyle = '#2a1a0a';
+  ctx.fillRect(px-12, oy+9, 8, 3);
+  ctx.fillRect(px+4,  oy+9, 8, 3);
+
+  // Nose
+  ctx.fillStyle = '#b87350';
+  ctx.fillRect(px-2, oy+18, 4, 6);
+
+  // Ears
+  ctx.fillStyle = '#d4956a';
+  ctx.fillRect(px-22, oy+12, 5, 10);
+  ctx.fillRect(px+17, oy+12, 5, 10);
+
+  // ── NECK ──
+  ctx.fillStyle = '#d4956a';
+  ctx.fillRect(px-8, oy+34, 16, 10);
+
+  // ── BODY (muscular torso) ──
+  ctx.fillStyle = '#cc3322'; // red boxing shorts area / tank top
+  ctx.fillRect(px-24, oy+44, 48, 44);
+  // Muscle lines
+  ctx.fillStyle = '#aa2211';
+  ctx.fillRect(px-1, oy+46, 2, 40);
+  ctx.fillRect(px-20, oy+54, 16, 3);
+  ctx.fillRect(px+4,  oy+54, 16, 3);
+  ctx.fillRect(px-20, oy+66, 16, 3);
+  ctx.fillRect(px+4,  oy+66, 16, 3);
+  // Tank top straps
+  ctx.fillStyle = '#eeddcc';
+  ctx.fillRect(px-20, oy+44, 8, 4);
+  ctx.fillRect(px+12, oy+44, 8, 4);
+
+  // ── BOXING SHORTS ──
+  ctx.fillStyle = '#cc2200';
+  ctx.fillRect(px-26, oy+88, 52, 36);
+  // Stripe
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(px-26, oy+94, 52, 4);
+  // USA text (pixel)
+  ctx.fillStyle = '#0055aa';
+  ctx.fillRect(px-8, oy+98, 16, 8);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(px-6, oy+100, 2, 4);
+  ctx.fillRect(px-2, oy+100, 2, 4);
+  ctx.fillRect(px+2, oy+100, 4, 4);
+
+  // ── ARMS (raised boxing stance) ──
+  // Left arm (raised guard)
+  ctx.fillStyle = '#d4956a';
+  ctx.fillRect(px-40, oy+40, 16, 12); // upper arm
+  ctx.fillRect(px-42, oy+52, 14, 10); // forearm
+
+  // Left boxing glove (red)
+  ctx.fillStyle = '#dd2211';
+  ctx.fillRect(px-50, oy+40, 20, 24);
+  ctx.fillStyle = '#bb1100';
+  ctx.fillRect(px-50, oy+40, 20, 4);
+  ctx.fillStyle = '#ff5544';
+  ctx.fillRect(px-48, oy+46, 6, 6); // knuckle highlight
+
+  // Right arm (punch out)
+  ctx.fillStyle = '#d4956a';
+  ctx.fillRect(px+24, oy+36, 16, 12);
+  ctx.fillRect(px+28, oy+48, 14, 10);
+
+  // Right boxing glove
+  ctx.fillStyle = '#dd2211';
+  ctx.fillRect(px+30, oy+34, 22, 22);
+  ctx.fillStyle = '#bb1100';
+  ctx.fillRect(px+30, oy+34, 22, 4);
+  ctx.fillStyle = '#ff5544';
+  ctx.fillRect(px+36, oy+40, 6, 6);
+
+  // Glove wrist wraps
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(px-50, oy+60, 20, 4);
+  ctx.fillRect(px+30, oy+54, 22, 4);
+
+  // ── LEGS ──
+  ctx.fillStyle = '#d4956a';
+  ctx.fillRect(px-22, oy+124, 18, 40); // left leg
+  ctx.fillRect(px+4,  oy+124, 18, 40); // right leg
+
+  // Boxing boots
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(px-24, oy+160, 22, 18);
+  ctx.fillRect(px+2,  oy+160, 22, 18);
+  ctx.fillStyle = '#cc2200';
+  ctx.fillRect(px-24, oy+160, 22, 5);
+  ctx.fillRect(px+2,  oy+160, 22, 5);
+  // Boot soles
+  ctx.fillStyle = '#333';
+  ctx.fillRect(px-26, oy+174, 26, 4);
+  ctx.fillRect(px+0,  oy+174, 26, 4);
+
+  // ── SWEAT / DAMAGE EFFECTS ──
+  if (isHit) {
+    ctx.fillStyle = '#ff8800';
+    ctx.fillRect(px-5, oy+5, 3, 3);
+    ctx.fillRect(px+10, oy+8, 2, 2);
+    ctx.fillRect(px-12, oy+3, 2, 4);
+  }
+
+  // ── NAME PLATE ──
+  if (!defeated) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(px-44, oy+198, 88, 16);
+    ctx.fillStyle = '#ff6644';
+    ctx.font = '8px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ROCKY', px, oy+211);
+  }
+
+  if (defeated) {
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffdd00';
+    ctx.font = '10px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('K.O.!', 90, 110);
+    ctx.fillStyle = '#ff8800';
+    ctx.fillText('DEFEATED!', 90, 130);
+  }
+}
+
+// ════════════════════════════════════════
+//  GAME OVER / WIN
+// ════════════════════════════════════════
+function gameOver() {
+  document.getElementById('go-score').textContent = state.score;
+  showScreen('gameover');
+  sfxWrong();
+  // dramatic bass
+  playTone(60, 'sawtooth', 0.5, 0.3);
+}
+
+function winGame() {
+  document.getElementById('win-score').textContent = state.score;
+  showScreen('win');
+  sfxWin();
+  // victory fanfare
+  setTimeout(() => {
+    [523,659,784,1047,1319].forEach((f,i) => playTone(f,'square',0.2,0.25,i*0.12));
+  }, 200);
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+updateHUD();
+</script>
+</body>
+</html>
