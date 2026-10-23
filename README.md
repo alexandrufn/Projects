@@ -8,6 +8,7 @@ Small Python games built with [pygame](https://www.pygame.org/).
 | Iron Fist Temple | [`IronFistTemple/`](IronFistTemple) |
 | Egg Rush Harry | [`EggRushHarry/`](EggRushHarry) |
 | Outlaw Gulch | [`OutlawGulch/`](OutlawGulch) |
+| Neon Knuckles | [`NeonKnuckles/`](NeonKnuckles) |
 
 Each folder has its own README with controls and gameplay details.
 
