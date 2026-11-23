@@ -54,3 +54,65 @@ Tick **VirusTotal IOC lookup** and enter an API key (or set the `VT_API_KEY` env
 - Fetching a hostile site still reveals your IP to it. For serious triage use passive mode or an isolated network.
 
 This is a heuristic triage aid, not a replacement for a commercial scanner: expect false positives and misses (cloaked or very new sites).
+
+---
+
+# Design notes: classification criteria and architecture ideas
+
+Background reference for the classifier. Not every item below is implemented yet; the tables above show what the app checks today.
+
+## Core idea
+
+Run several independent detectors, each producing a score and evidence. A final stage combines them into a verdict with a confidence level. Make the evidence visible to the user, because "why was this flagged?" matters as much as the label.
+
+## Classification criteria
+
+### 1. Lexical and URL structure (static, instant)
+
+* Length, number of subdomains, digits, `@`, `//` redirects, and hyphens
+* IP address instead of a domain, or a non-standard port
+* Punycode or homoglyph lookalikes (`paypa1.com`, `xn--` domains)
+* Brand names in the subdomain or path (`paypal.com.secure-login.xyz`)
+* Suspicious keywords (`login`, `verify`, `update`, `invoice`)
+* High-risk TLDs (`.zip`, `.top`, `.xyz`) and URL shorteners
+* Random-looking domains (high entropy), a sign of domain generation algorithms (DGAs) used by malware
+* Executable extensions (`.exe`, `.scr`, `.js`, `.iso`, macro-enabled Office files)
+
+### 2. Domain and infrastructure reputation
+
+* Domain age (phishing domains are often under 30 days old)
+* WHOIS: privacy-masked registrant, registrar reputation
+* DNS: fast-flux, short TTLs, shared hosting with known-bad neighbors
+* TLS certificate: brand-new, free-issuer, mismatched name, or missing
+* ASN and IP reputation, and hosting country
+* Presence in blocklists and feeds: Google Safe Browsing, PhishTank, OpenPhish, URLhaus, abuse.ch, VirusTotal
+* Popularity ranking (Tranco or Majestic top lists work as an allowlist signal)
+
+### 3. Page content and behavior (fetched safely in a sandbox)
+
+* Login or password forms posting to a different domain than the page
+* Brand logos or favicons on a domain that doesn't own the brand (image similarity)
+* Cloned page structure or text compared with known legitimate sites
+* Hidden iframes, heavy JavaScript obfuscation, `eval`, and `atob` chains
+* Disabled right-click, fake browser-in-browser popups, fake CAPTCHAs
+* Redirect chains, cloaking (different content for crawlers versus users), and QR-code or "ClickFix" lures
+
+### 4. Malware-specific signals
+
+* Drive-by download triggers and automatic file downloads
+* Hash of the downloaded file checked against known malware databases
+* Exploit-kit patterns and cryptominer scripts
+* Sandbox detonation results: network calls, dropped files, process spawning
+
+### 5. Contextual signals
+
+* Where the link came from: email with a failed SPF/DKIM/DMARC check, or an unexpected sender
+* Urgency language in the surrounding message
+* How many other users or endpoints saw this URL (a prevalence of 1 is more suspicious)
+
+## Architecture ideas
+
+* Tiered pipeline: cheap checks first (blocklists, lexical ML, about 10 ms), then expensive ones (page fetch, sandbox detonation) only for uncertain URLs.
+* Models: gradient boosting (XGBoost or LightGBM) on lexical and host features is a strong baseline. Add a character-level CNN or transformer on the raw URL, and a vision model on page screenshots for brand impersonation.
+* Output: label (`clean` / `phishing` / `malware` / `suspicious`), confidence, and the top contributing signals. Keep an "uncertain" bucket rather than forcing a binary call.
+* Feedback loop: user reports and analyst corrections feed retraining. Phishing sites live for hours, so the model needs frequent updates.
